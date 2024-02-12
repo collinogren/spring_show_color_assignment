@@ -7,35 +7,35 @@
     into the first available slot. This last case should not happen but should still be there as a
     contingency.
 */
-use std::ops::Sub;
 use crate::respondent::Respondent;
 
 const NUMBER_OF_GROUPS: usize = 4;
 
-fn try_placement(color: &mut Vec<Respondent>, respondent: &Respondent, max_respondents: usize, remainder_respondents: &mut usize) -> bool {
-    if color.len() >= max_respondents {
-        if *remainder_respondents <= 0usize {
-            return false;
-        } else {
-            remainder_respondents.sub(1);
-        }
+// Attempt to place a participant into a group. If the group is full, then that means it must be sorted in the next iteration.
+// Each iteration represents, in order, the first, second, and third choices.
+fn try_placement(group: &mut Vec<Respondent>, respondent: &Respondent, max_respondents: usize) -> bool {
+    println!("{}", respondent.get_name());
+    if group.len() >= max_respondents {
+        return false;
     }
 
-    color.push(respondent.clone());
+    group.push(respondent.clone());
     true
 }
 
+// Attempt to place each respondent into a group and if the group is full, place them into a new array to be processed
+// in the next iteration using their next choice of color.
 fn calculate_iteration(
     mut green: &mut Vec<Respondent>,
     mut blue: &mut Vec<Respondent>,
     mut red: &mut Vec<Respondent>,
     mut purple: &mut Vec<Respondent>,
     max_respondents: usize,
-    remainder_respondents: &mut usize,
     input: &Vec<Respondent>,
     phase: u8,
 ) -> Vec<Respondent> {
     let mut next_iter = vec![];
+
     for respondent in input.iter() {
         let color = match phase {
             0 => respondent.get_color1(),
@@ -44,23 +44,23 @@ fn calculate_iteration(
             _ => continue,
         };
         match color.as_str() {
-            "green" => {
-                if try_placement(&mut green, respondent, max_respondents, remainder_respondents) {
+            "Greens" => {
+                if try_placement(&mut green, respondent, max_respondents) {
                     continue;
                 }
             },
-            "blue" => {
-                if try_placement(&mut blue, respondent, max_respondents, remainder_respondents) {
+            "Blues" => {
+                if try_placement(&mut blue, respondent, max_respondents) {
                     continue;
                 }
             },
-            "red" => {
-                if try_placement(&mut red, respondent, max_respondents, remainder_respondents) {
+            "Reds + Oranges" => {
+                if try_placement(&mut red, respondent, max_respondents) {
                     continue;
                 }
             },
-            "purple" => {
-                if try_placement(&mut purple, respondent, max_respondents, remainder_respondents) {
+            "Pinks + Purples" => {
+                if try_placement(&mut purple, respondent, max_respondents) {
                     continue;
                 }
             },
@@ -71,19 +71,25 @@ fn calculate_iteration(
     }
 
     next_iter.sort_by(|a, b| b.get_time().cmp(&a.get_time()));
+    next_iter.reverse();
     next_iter
 }
 
-fn calculate_colors(mut respondents: Vec<Respondent>) {
+// Sort by chronological order, calculate maximum group size which is (the number of participants / the number of groups) + 1,
+// create arrays for each color group and pass them to the calculate_iteration() function which returns a list of all
+// unsorted participants. calculate_iteration() is called three times so that the first, second, and third choices are all considered (if needed).
+pub fn calculate_colors(mut respondents: Vec<Respondent>) -> (Vec<Respondent>, Vec<Respondent>, Vec<Respondent>, Vec<Respondent>) {
     respondents.sort_by(|a, b| b.get_time().cmp(&a.get_time()));
-    let max_respondents = respondents.len() / NUMBER_OF_GROUPS;
-    let mut remainder_respondents = respondents.len() % NUMBER_OF_GROUPS;
+    respondents.reverse();
+    let max_respondents = (respondents.len() / NUMBER_OF_GROUPS) + 1;
     let mut green = vec![];
     let mut blue = vec![];
     let mut red = vec![];
     let mut purple = vec![];
 
-    let next_iter = calculate_iteration(&mut green, &mut blue, &mut red, &mut purple, max_respondents, &mut remainder_respondents, &respondents, 0);
-    let next_iter = calculate_iteration(&mut green, &mut blue, &mut red, &mut purple, max_respondents, &mut remainder_respondents, &next_iter, 1);
-    calculate_iteration(&mut green, &mut blue, &mut red, &mut purple, max_respondents, &mut remainder_respondents, &next_iter, 2);
+    let next_iter = calculate_iteration(&mut green, &mut blue, &mut red, &mut purple, max_respondents, &respondents, 0);
+    let next_iter = calculate_iteration(&mut green, &mut blue, &mut red, &mut purple, max_respondents, &next_iter, 1);
+    calculate_iteration(&mut green, &mut blue, &mut red, &mut purple, max_respondents, &next_iter, 2);
+
+    (green, blue, red, purple)
 }
