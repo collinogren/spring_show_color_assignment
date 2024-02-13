@@ -1,4 +1,5 @@
 use std::fs;
+use native_dialog::FileDialog;
 use crate::calculator::calculate_colors;
 use crate::respondent::{create_data_set, Respondent};
 
@@ -17,8 +18,22 @@ fn print(resp: Vec<Respondent>, color: &str, output_name: &str) {
     fs::write(format!("./{}", output_name), output).unwrap();
 }
 
+fn get_path_from_user() -> (String, bool) {
+    let path = FileDialog::new().show_open_single_file();
+    match path {
+        Ok(v) => {(v.unwrap().to_str().unwrap().to_string(), true)},
+        Err(_) => {(String::new(), false)},
+    }
+}
+
 fn main() {
-    let data = create_data_set("data.txt");
+    let (path, success) = get_path_from_user();
+
+    if !success {
+        return;
+    }
+
+    let data = create_data_set(path.as_str());
     let (green, blue, red, purple) = calculate_colors(data);
 
     print(green, "Greens", "Greens.txt");
