@@ -131,7 +131,12 @@ pub fn calculate_colors(mut respondents: Vec<Respondent>) -> (Vec<Respondent>, V
     sort_chronologically(&mut respondents);
 
     // Maximum size of each group. the + 1 handles remainder.
-    let max_respondents = (respondents.len() / NUMBER_OF_GROUPS) + 1;
+    let max_respondents = respondents.len() as f64 / NUMBER_OF_GROUPS as f64;
+    let max_respondents = if max_respondents > max_respondents.floor() {
+        (max_respondents.floor() + 1.0) as usize
+    } else {
+        max_respondents.floor() as usize
+    };
 
     // Create arrays to represent each group.
     let mut green = vec![];
